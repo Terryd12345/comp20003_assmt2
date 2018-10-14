@@ -126,29 +126,15 @@ void apply( node* n, int op )
 /* Recursive IDA */
 node* ida( node* n, int threshold, int* newThreshold )
 {
-	/**
-	* FILL WITH YOUR CODE
-	*
-	* Algorithm in Figure 1 of handout
-	*/
-
-	int i, j;
-
-	node *new_node;
-	node *r;
+	int i;
+	node *new_node = (node*)malloc(sizeof(node));
+	node *r = (node*)malloc(sizeof(node));
 
 	for( i=0; i<4; i++ ){
 		if( applicable(i) ){
-			new_node = (node*)malloc(sizeof(node));
-			for(j=0; j<16; j++){
-				new_node->state[j] = n->state[j];
-			}
-			new_node->g = n->g;
-			new_node->f = n->f;
-
+			memcpy(new_node->state, n->state, sizeof(int)*16);
 			apply(new_node, i);
-
-			new_node->g = new_node->g + 1;
+			new_node->g = n->g + 1;
 			new_node->f = new_node->g + manhattan(new_node->state);
 
 			if( new_node->f > threshold ){
@@ -159,18 +145,13 @@ node* ida( node* n, int threshold, int* newThreshold )
 				if( manhattan(new_node->state) == 0 ){
 					return new_node;
 				}
-				r = (node*)malloc(sizeof(node));
 				r = ida(new_node, threshold, newThreshold);
 				if( r != NULL ) {
 					return r;
 				}
 			}
-			
 		}
-	}
-
-	
-
+	} 
 	return( NULL );
 }
 
@@ -178,11 +159,9 @@ node* ida( node* n, int threshold, int* newThreshold )
 /* main IDA control loop */
 int IDA_control_loop(  ){
 	node* r = NULL;
-	node* n = (node*)malloc(sizeof(node));
-	
-	int threshold, i;
-
-	int *newThreshold = (int*)INT_MAX;
+	node* n = NULL;
+	int threshold;
+	int newThreshold = INT_MAX;
 	
 	/* initialize statistics */
 	generated = 0;
@@ -193,22 +172,14 @@ int IDA_control_loop(  ){
 
 	printf( "Initial Estimate = %d\nThreshold = ", threshold );
 	
-
-	/**
-	* FILL WITH YOUR CODE
-	*
-	* Algorithm in Figure 1 of handout
-	*/
-
-	while(r == NULL) {
-		*newThreshold = INT_MAX;
-		for(i=0; i<16; i++){
-			n->state[i] = initial_node.state[i];
-		}
+	while( r == NULL ) {
+		n = (node*)malloc(sizeof(node));
+		newThreshold = INT_MAX;
+		memcpy(n->state, initial_node.state, sizeof(int)*16);
 		n->g = 0;
-		r = ida(n, threshold, newThreshold);
+		r = ida(n, threshold, &newThreshold);
 		if(r == NULL) {
-			threshold = *newThreshold;
+			threshold = newThreshold;
 		}
 	}
 	
