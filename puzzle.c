@@ -90,9 +90,11 @@ int manhattan( int* state )
 
 	for(i=0; i<16; i++){
 		curr_x = i % 4;
-		curr_y = floor(i / 4);
 		dest_x = state[i] % 4;
+
+		curr_y = floor(i / 4);
 		dest_y = floor(state[i] / 4);
+
 		sum += ( abs(curr_x - dest_x) + abs(curr_y - dest_y) );
 	}
 	
@@ -123,17 +125,41 @@ void apply( node* n, int op )
 	blank_pos = t;
 }
 
+// Move back to state
+void unapply(node *n, int op){
+	switch(op) {
+		case 0:
+			apply(n, 1);
+			break;
+		case 1:
+			apply(n, 0);
+			break;
+		case 2:
+			apply(n, 3);
+			break;
+		case 3:
+			apply(n, 2);
+			break;
+	}
+}
+
+
 /* Recursive IDA */
 node* ida( node* n, int threshold, int* newThreshold )
 {
-	int i;
+	int i, curr_pos=0;
 	node *new_node = (node*)malloc(sizeof(node));
 	node *r = (node*)malloc(sizeof(node));
 
 	for( i=0; i<4; i++ ){
 		if( applicable(i) ){
+			curr_pos = blank_pos;
 			memcpy(new_node->state, n->state, sizeof(int)*16);
 			apply(new_node, i);
+
+			//print_state(new_node->state);
+			//printf("\n");
+
 			new_node->g = n->g + 1;
 			new_node->f = new_node->g + manhattan(new_node->state);
 
@@ -149,9 +175,12 @@ node* ida( node* n, int threshold, int* newThreshold )
 				if( r != NULL ) {
 					return r;
 				}
+				
 			}
 		}
+		blank_pos = curr_pos;
 	} 
+
 	return( NULL );
 }
 
@@ -161,7 +190,7 @@ int IDA_control_loop(  ){
 	node* r = NULL;
 	node* n = NULL;
 	int threshold;
-	int newThreshold = INT_MAX;
+	int *newThreshold = (int*)malloc(sizeof(int));
 	
 	/* initialize statistics */
 	generated = 0;
@@ -174,12 +203,12 @@ int IDA_control_loop(  ){
 	
 	while( r == NULL ) {
 		n = (node*)malloc(sizeof(node));
-		newThreshold = INT_MAX;
+		*newThreshold = INT_MAX;
 		memcpy(n->state, initial_node.state, sizeof(int)*16);
 		n->g = 0;
-		r = ida(n, threshold, &newThreshold);
+		r = ida(n, threshold, newThreshold);
 		if(r == NULL) {
-			threshold = newThreshold;
+			threshold = *newThreshold;
 		}
 	}
 	
