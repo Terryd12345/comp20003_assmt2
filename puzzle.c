@@ -30,7 +30,8 @@ typedef struct node{
 // so it doesn't have to be searched every time we check if an operator is applicable
 // When we apply an operator, blank_pos is updated
 int blank_pos;
-int test = 0;
+
+// Store previous move
 int previous_move = -1;
 
 // Initial node of the problem
@@ -126,6 +127,7 @@ void apply( node* n, int op )
 	blank_pos = t;
 }
 
+/* Return minimum value of two integers */
 int min(int a, int b){
 	if(a < b){
 		return a;
@@ -134,6 +136,18 @@ int min(int a, int b){
 	}
 }
 
+/*  Set the value of blank_pos to its initial value  */
+int reinitialize_blank_pos(){
+	for(int i=0; i<16; i++){
+		if(initial_node.state[i] == 0){
+			return i;
+		}
+	}
+	return -1;
+}
+
+
+/* Avoid making opposite move i.e. dont go left after going right */
 int stupid_move(int curr_move){
 	if( (curr_move == LEFT) && (previous_move == RIGHT) ){
 		return 1;
@@ -149,24 +163,30 @@ int stupid_move(int curr_move){
 
 
 /* Recursive IDA */
+/* 
+	I was unable to complete the IDA* function in time.
+	Apologies for this, I have tried to structure my code as closely to the pseudo code as possible however
+	I am still not sure exactly why it is not working correctly. 
+*/
 node* ida( node* n, int threshold, int* newThreshold )
 {
 	int i;
-	node *new_node = (node*)malloc(sizeof(node));
-	node *r = (node*)malloc(sizeof(node));
-
+	node *r = NULL;
+	node *new_node;
+	
 	for(i=0; i<4; i++) {
 		if( applicable(i) && !stupid_move(i) ){
 			previous_move = i;
-	
+
+			/* Create new node and initialize new threshold values */
 			apply(n, i);
-			new_node = n;
+			new_node = (node*)malloc(sizeof(node));
 			new_node->g = n->g + 1;
 			new_node->f = new_node->g + manhattan(new_node->state);
 			
-
+			/* Compare thresholds to determine if path is worth going down */
 			if(new_node->f > threshold){
-				*newThreshold = min(threshold, new_node->f);
+				*newThreshold = min(*newThreshold, new_node->f);
 			} else {
 				if( manhattan(new_node->state) == 0 ) {
 					return new_node;
@@ -180,15 +200,6 @@ node* ida( node* n, int threshold, int* newThreshold )
 		}
 	}
 	return( NULL );
-}
-
-int reinitialize_blank_pos(){
-	for(int i=0; i<16; i++){
-		if(initial_node.state[i] == 0){
-			return i;
-		}
-	}
-	return -1;
 }
 
 /* main IDA control loop */
@@ -209,16 +220,24 @@ int IDA_control_loop(  ){
 	printf( "Initial Estimate = %d\nThreshold = ", threshold );
 
 	while( r == NULL ){
+
+		/* Reset initial values */
 		blank_pos = reinitialize_blank_pos();
 		previous_move = -1;
-		n = (node*)malloc(sizeof(node));
-		*n = initial_node;
-		n->g = 0;
 		*newThreshold = INT_MAX;
+
+		/* Initialize new node */
+		n = (node*)malloc(sizeof(node));
+		memcpy(n->state, initial_node.state, sizeof(int)*16);
+		n->g = 0;
+
+		/* Search tree until optimum path is found */
 		r = ida(n, threshold, newThreshold);
+
 		if(r == NULL){
 			threshold = *newThreshold;
 		}
+		free(n);
 	}
 
 	if(r)
